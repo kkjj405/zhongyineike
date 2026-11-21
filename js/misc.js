@@ -197,7 +197,7 @@
     UI.header({ title: '赞赏支持', back: true });
     main.innerHTML = '<div class="card tip-card">' +
       '<p class="tip-t serif">制作不易，如果觉得有用的话，可以给作者一点赞赏嘛，多少都是可以的，' +
-      '一块钱也是爱，当然没有打赏也是可以的，支持免费使用，大家都是医学生，不必为难</p>' +
+      '一块钱也是爱，当然没有打赏也是可以的，支持分享，支持白嫖，大家都是医学生，不必为难</p>' +
       '<div class="qr-wrap"><img src="qr.jpg" alt="赞赏码" class="qr-img"></div>' +
       '<p class="tiny dim center">微信 / 支付宝 扫码 · 完全自愿</p></div>';
   }
