@@ -522,3 +522,8 @@ textarea.input{resize:vertical; min-height:88px}
 .q-syn-n{flex:0 0 auto;font-size:11px;color:#fff;background:var(--brown);border-radius:6px;padding:2px 7px;font-weight:600}
 .q-syn-t{font-weight:700;color:var(--brown-d);font-size:14.5px}
 .q-sep{border:0;border-top:1px dashed var(--line-2);margin:16px 0 0}
+
+/* 目录里的附病行 */
+.dr.sub{padding-left:26px;background:var(--card-2)}
+.dr.sub .nm{font-size:13.3px;color:var(--ink-2)}
+.dr.sub .cn-chip{height:18px;padding:0 6px;font-size:10px}

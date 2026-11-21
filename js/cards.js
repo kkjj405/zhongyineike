@@ -27,23 +27,52 @@
       '<span class="flags">' + flags.join('') + '</span></div>';
   }
 
+  function attachRow(a, manage) {
+    var hid = Z.isHidden(a.id), flags = [];
+    if (hid) flags.push('<span class="flag" title="已隐藏">⊘</span>');
+    if (Z.isFav(a.id)) flags.push('<span class="flag" style="color:#b8892f">★</span>');
+    if (Z.note(a.id)) flags.push('<span class="flag" style="color:#2f5573">✎</span>');
+    return '<div class="dr sub' + (hid ? ' hid' : '') + (catState.sel[a.id] ? ' sel' : '') +
+      '" data-ar="' + a.id + '">' +
+      (manage ? '<label class="ck"><input type="checkbox" data-ck="' + a.id + '"' + (catState.sel[a.id] ? ' checked' : '') + '></label>' : '') +
+      '<span class="nm">' + esc(a.name) + '</span>' +
+      '<span class="chip gray tiny cn-chip">附</span>' +
+      '<span class="flags">' + flags.join('') + '</span></div>';
+  }
+
   function matchDisease(d, kw) {
     if (!kw) return true;
     return d.name.indexOf(kw) >= 0 || d.chapterNo.indexOf(kw) >= 0;
   }
   function catListHTML() {
     var kw = catState.kw;
-    var hits = Z.diseases.filter(function (d) { return matchDisease(d, kw); });
+    function attachMatch(a) { return !kw || a.name.indexOf(kw) >= 0 || (a.parentName || '').indexOf(kw) >= 0; }
+    var hits = Z.diseases.filter(function (d) {
+      if (matchDisease(d, kw)) return true;
+      return (d.attachIds || []).some(function (aid) {
+        var a = Z.attaches.filter(function (x) { return x.id === aid; })[0];
+        return a && attachMatch(a);
+      });
+    });
     var out = [];
     if (!hits.length) {
       return '<div class="empty">没有找到包含「' + esc(kw) + '」的病证<br>' +
-        '<span class="small dim">试试更短的关键词（如「咳」「痛」），或清空搜索</span></div>';
+        '<span class="small dim">试试更短的关键词（如「咳」「痛」「寐」），或清空搜索</span></div>';
     }
     if (kw) {
       out.push('<div class="tiny dim" style="margin:0 4px 8px">匹配 <b style="color:#27425c">' + hits.length +
-        '</b> 个病证 · 点病名进卡片</div>');
+        '</b> 个病证（含附病） · 点病名进卡片</div>');
     }
-    var rows = hits.map(function (d) { return diseaseRow(d, catState.manage); }).join('');
+    var rows = hits.map(function (d) {
+      var h = diseaseRow(d, catState.manage);
+      (d.attachIds || []).forEach(function (aid) {
+        var a = Z.attaches.filter(function (x) { return x.id === aid; })[0];
+        if (!a) return;
+        if (kw && !attachMatch(a) && !matchDisease(d, kw)) return;
+        h += attachRow(a, catState.manage);
+      });
+      return h;
+    }).join('');
     out.push('<div class="card flat" style="padding:2px 0">' + rows + '</div>');
     out.push('<div class="small dim center" style="margin:12px 0 4px">— 共 ' + Z.diseases.length +
       ' 个病证（' + Z.chapters.length + ' 章） · 附病 ' + Z.attaches.length + ' 个 —</div>');
@@ -63,6 +92,20 @@
           return;
         }
         UI.go('#/card/' + id);
+      };
+    });
+    main.querySelectorAll('[data-ar]').forEach(function (el) {
+      el.onclick = function (e) {
+        var id = el.getAttribute('data-ar');
+        if (catState.manage) {
+          if (e.target.closest && e.target.closest('.ck')) return;
+          toggleSel(id);
+          el.classList.toggle('sel', !!catState.sel[id]);
+          var ck = el.querySelector('input'); if (ck) ck.checked = !!catState.sel[id];
+          paintManageBar(main);
+          return;
+        }
+        UI.go('#/attach/' + id);
       };
     });
     main.querySelectorAll('[data-ck]').forEach(function (ck) {
@@ -98,6 +141,7 @@
     if (main) {
       bar.querySelector('[data-mb="all"]').onclick = function () {
         Z.diseases.forEach(function (d) { catState.sel[d.id] = 1; });
+        Z.attaches.forEach(function (a) { catState.sel[a.id] = 1; });
         renderCatalog(main); paintManageBar(main);
       };
       bar.querySelector('[data-mb="none"]').onclick = function () {
