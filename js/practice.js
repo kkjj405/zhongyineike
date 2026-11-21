@@ -116,7 +116,7 @@
       stem: '病证「' + esc(d.name) + '」中，临床表现「<span class="q-quote">' + esc(clinic) +
         '</span>」的' + label + '是？',
       opts: opts, correct: [opts.indexOf(correctText)], chosen: [], done: false,
-      synIdx: s.__idx, synName: s.name
+      synIdx: s.__idx
     };
   }
   function buildQuestions(d) {
@@ -453,8 +453,7 @@
     qs.forEach(function (q, qi) {
       if (q.synIdx != null && q.synIdx >= 0 && q.synIdx !== lastSyn) {
         if (lastSyn >= 0) h.push('<hr class="q-sep">');
-        h.push('<div class="q-syn"><span class="q-syn-n">证型 ' + (q.synIdx + 1) + '</span>' +
-          '<span class="q-syn-t">' + esc(q.synName || '') + '</span></div>');
+        h.push('<div class="q-syn"><span class="q-syn-n">证型 ' + (q.synIdx + 1) + '</span></div>');
         lastSyn = q.synIdx;
       }
       h.push('<div class="q" data-q="' + qi + '">');
