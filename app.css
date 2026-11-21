@@ -517,3 +517,8 @@ textarea.input{resize:vertical; min-height:88px}
 .list .li .li-s{font-size:11.5px;color:var(--ink-3);display:block}
 .list .li .grow{display:flex;flex-direction:column;min-width:0}
 .tbl-wrap table{min-width:100%}
+/* 练习选择题：证型分组标题 / 分隔线 */
+.q-syn{display:flex;align-items:center;gap:8px;margin:16px 0 6px}
+.q-syn-n{flex:0 0 auto;font-size:11px;color:#fff;background:var(--brown);border-radius:6px;padding:2px 7px;font-weight:600}
+.q-syn-t{font-weight:700;color:var(--brown-d);font-size:14.5px}
+.q-sep{border:0;border-top:1px dashed var(--line-2);margin:16px 0 0}

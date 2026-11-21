@@ -61,12 +61,32 @@
   }
 
   /* ---------------- 题目生成（选择题） ---------------- */
+  /* 病因要点：取病因段的小标题（**1. 六淫病邪** 这类）拼成一句，如「六淫病邪、时行疫疠」 */
+  function yinbingKey(d) {
+    var keys = [];
+    (d.yinbing || []).forEach(function (b) {
+      if (b && b.t === 'b') {
+        var k = String(b.x).replace(/^\d+[.、]\s*/, '').trim();
+        if (k) keys.push(k);
+      }
+    });
+    if (keys.length) return keys.join('、');
+    return excerpt(Z.fieldText(d.yinbing), 40);
+  }
   function makeYinbingQ(d) {
-    var stem = excerpt(Z.fieldText(d.yinbing), 110);
-    var opts = Z.shuffle([d.name].concat(pickDecoys(allDiseaseNames(d.id), [d.name], 3)));
+    var correctText = yinbingKey(d);
+    var pool = [];
+    Z.diseases.forEach(function (x) {
+      if (x.id === d.id) return;
+      var k = yinbingKey(Z.view(x));
+      if (k && k !== correctText) pool.push(k);
+    });
+    var decoys = Z.shuffle(Z.uniq(pool)).slice(0, 3);
+    var opts = Z.shuffle([correctText].concat(decoys));
     return {
-      kind: 'single', tag: '病因', stem: '以下病因描述属于哪个病证？<br><span class="q-quote">「' + esc(stem) + '」</span>',
-      opts: opts, correct: [opts.indexOf(d.name)], chosen: [], done: false
+      kind: 'single', tag: '病因',
+      stem: '「' + esc(d.name) + '」的病因是？',
+      opts: opts, correct: [opts.indexOf(correctText)], chosen: [], done: false, synIdx: -1
     };
   }
   function makeMultiQ(d) {
@@ -90,12 +110,13 @@
     var decoys = pickDecoys(pool, [correctText], 3);
     var opts = Z.shuffle([correctText].concat(decoys));
     var label = field === 'name' ? '证候名称' : (field === 'treat' ? '治法' : '代表方');
-    var clinic = excerpt(s.clinic, 46);
+    var clinic = String(s.clinic || '').trim();
     return {
       kind: 'single', tag: label,
       stem: '病证「' + esc(d.name) + '」中，临床表现「<span class="q-quote">' + esc(clinic) +
         '</span>」的' + label + '是？',
-      opts: opts, correct: [opts.indexOf(correctText)], chosen: [], done: false
+      opts: opts, correct: [opts.indexOf(correctText)], chosen: [], done: false,
+      synIdx: s.__idx, synName: s.name
     };
   }
   function buildQuestions(d) {
@@ -103,10 +124,12 @@
     if (st.fields.indexOf('yinbing') >= 0) qs.push(makeYinbingQ(d));
     if (st.fields.indexOf('zhenzhi') >= 0) {
       qs.push(makeMultiQ(d));
-      (d.syndrome || []).forEach(function (s) {
+      (d.syndrome || []).forEach(function (s, si) {
+        s.__idx = si;
         qs.push(makeFieldQ(d, s, 'name'));
         qs.push(makeFieldQ(d, s, 'treat'));
         qs.push(makeFieldQ(d, s, 'formula'));
+        delete s.__idx;
       });
     }
     return qs;
@@ -426,7 +449,14 @@
     var h = ['<div class="card"><div class="q-hd"><span class="q-nm">' + esc(d.name) + '</span>' +
       '<span class="chip gray tiny">' + esc(d.chapterNo) + '</span>' +
       '<span class="chip gray tiny">' + qs.length + ' 题</span></div>'];
+    var lastSyn = -2;
     qs.forEach(function (q, qi) {
+      if (q.synIdx != null && q.synIdx >= 0 && q.synIdx !== lastSyn) {
+        if (lastSyn >= 0) h.push('<hr class="q-sep">');
+        h.push('<div class="q-syn"><span class="q-syn-n">证型 ' + (q.synIdx + 1) + '</span>' +
+          '<span class="q-syn-t">' + esc(q.synName || '') + '</span></div>');
+        lastSyn = q.synIdx;
+      }
       h.push('<div class="q" data-q="' + qi + '">');
       h.push('<div class="q-stem"><span class="q-tag">' + esc(q.tag) + '</span>' + q.stem + '</div>');
       h.push('<div class="q-opts">');
@@ -486,7 +516,14 @@
         } else {
           q.chosen = [oi];
         }
-        UI.go('#/run/' + run.mode);
+        /* 原地更新本题选项状态，避免整页重绘导致滚动回顶部 */
+        var box = b.closest('.q');
+        if (box) {
+          box.querySelectorAll('[data-qo]').forEach(function (ob) {
+            var oi2 = +ob.getAttribute('data-qo').split('-')[1];
+            ob.classList.toggle('chosen', q.chosen.indexOf(oi2) >= 0);
+          });
+        }
       };
     });
     main.querySelectorAll('[data-qs]').forEach(function (b) {
@@ -496,7 +533,9 @@
         if (!q || q.done) return;
         if (!q.chosen.length) { UI.toast('先选一个选项'); return; }
         q.done = true;
+        var y = window.scrollY;
         UI.go('#/run/' + run.mode);
+        window.scrollTo(0, y);
       };
     });
   }
@@ -514,14 +553,20 @@
   }
   function doFinish() {
     captureDom();
-    var all = doneQuestions() >= totalQuestions() && totalQuestions() > 0;
+    var done = doneQuestions();
+    var total = totalQuestions();
+    var all = done >= total && total > 0;
+    var mode = run.mode;
     if (!all) saveDraft(true);
     else { Z.store.drafts = Z.store.drafts.filter(function (x) { return x.key !== run.key; }); Z.save(true); }
     run = null;
     if (all) {
+      var msg = mode === 'mo'
+        ? '已完成全部 ' + total + ' 个病证。'
+        : '已完成全部 ' + total + ' 题。';
       UI.dialog({
         title: '练习完成',
-        text: '已完成全部 ' + totalQuestions + ' 题。',
+        text: msg,
         buttons: [{ text: '回练习页', value: true, primary: true }]
       }).then(function () { UI.go('#/practice'); });
     } else {
