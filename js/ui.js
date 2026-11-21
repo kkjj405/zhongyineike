@@ -60,7 +60,7 @@
     var el = document.getElementById('hd');
     el.innerHTML = h.join('');
     var b = document.getElementById('hd-back');
-    if (b) b.onclick = function () { back(); };
+    if (b) b.onclick = function () { opts.backTo ? replace(opts.backTo) : back(); };
     (opts.actions || []).forEach(function (a, i) {
       var btn = el.querySelector('[data-hact="' + i + '"]');
       if (btn) btn.onclick = function (e) { e.preventDefault(); a.onClick && a.onClick(); };
@@ -123,6 +123,16 @@
   function go(hash) {
     if (location.hash === hash) { render(); return; }
     location.hash = hash;
+  }
+  /* 替换当前历史项并立即重绘：用于卡片内翻页/切换病证，避免「返回」退回到上一页 */
+  function replaceHash(hash) {
+    if (location.hash === hash) { render(); return; }
+    try {
+      history.replaceState(null, '', hash);
+      render();
+    } catch (e) {
+      location.hash = hash;
+    }
   }
   function replace(hash) {
     try { location.replace(hash); } catch (e) { location.hash = hash; }
@@ -197,7 +207,7 @@
 
   window.ZNK_UI = {
     ICONS: ICONS, icon: icon, TABS: TABS, VIEWS: VIEWS, state: state,
-    header: header, tabbar: tabbar, render: render, go: go, back: back, replace: replace,
+    header: header, tabbar: tabbar, render: render, go: go, replace: replace, replaceHash: replaceHash, back: back,
     dialog: dialog, closeDialog: closeDialog, confirmDialog: confirmDialog, dialogOpen: dialogOpen,
     toast: toast, emptyBox: emptyBox, bind: bind, parseHash: parseHash
   };

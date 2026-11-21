@@ -451,6 +451,7 @@
       title: v.name,
       sub: v.chapterNo,
       back: true,
+      backTo: '#/catalog',
       actions: []
     });
 
@@ -504,7 +505,7 @@
     function gotoPage(i) {
       i = Math.min(Math.max(0, i), pages - 1);
       cardState.page = i;
-      UI.go('#/card/' + v.id + '?p=' + i);
+      UI.replaceHash('#/card/' + v.id + '?p=' + i);
     }
     main.querySelectorAll('[data-pg]').forEach(function (b) {
       b.onclick = function () { gotoPage(+b.getAttribute('data-pg')); };
@@ -512,9 +513,9 @@
     var pi = main.querySelector('#pg-prev'); if (pi) pi.onclick = function () { gotoPage(cardState.page - 1); };
     var nx = main.querySelector('#pg-next'); if (nx) nx.onclick = function () { gotoPage(cardState.page + 1); };
     var dp = main.querySelector('#d-prev');
-    if (dp) dp.onclick = function () { var id = Z.navigate(v.id, -1); if (id) UI.go('#/card/' + id + '?p=0'); };
+    if (dp) dp.onclick = function () { var id = Z.navigate(v.id, -1); if (id) { cardState.page = 0; UI.replaceHash('#/card/' + id + '?p=0'); } };
     var dn = main.querySelector('#d-next');
-    if (dn) dn.onclick = function () { var id = Z.navigate(v.id, 1); if (id) UI.go('#/card/' + id + '?p=0'); };
+    if (dn) dn.onclick = function () { var id = Z.navigate(v.id, 1); if (id) { cardState.page = 0; UI.replaceHash('#/card/' + id + '?p=0'); } };
     var uh = main.querySelector('#unhide-now');
     if (uh) uh.onclick = function () { Z.setHidden(v.id, false); UI.toast('已取消隐藏'); renderCard(main, [v.id], {}); };
     var rs = main.querySelector('#reset-now');
@@ -537,7 +538,7 @@
     var a = Z.byId[p[0]];
     if (!a) { main.innerHTML = UI.emptyBox('附病不存在'); return; }
     var v = Z.viewAttach(a);
-    UI.header({ title: '附：' + v.name, sub: v.parentName, back: true });
+    UI.header({ title: '附：' + v.name, sub: v.parentName, back: true, backTo: '#/card/' + v.parent });
     var h = [];
     h.push('<div class="notice mb10"><span>附病 · 隶属「' + esc(v.parentName) + '」' +
       (v.chapterNo ? '（' + esc(v.chapterNo) + '）' : '') + '</span>' +
@@ -565,7 +566,7 @@
     var pages = 4 + ((d.attachIds || []).length ? 1 : 0);
     var cur = (typeof cardState.page === 'number') ? cardState.page : 0;
     var np = Math.min(Math.max(0, cur + (e.key === 'ArrowRight' ? 1 : -1)), pages - 1);
-    if (np !== cur) UI.go('#/card/' + id + '?p=' + np);
+    if (np !== cur) { cardState.page = np; UI.replaceHash('#/card/' + id + '?p=' + np); }
   });
 
   UI.VIEWS.catalog = renderCatalog;
